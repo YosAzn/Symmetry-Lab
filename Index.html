@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>המעבדה של עידו 🎨</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="המעבדה של עידו">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%230f172a%22/><text y=%2250%22 x=%2250%22 font-size=%2260%22 text-anchor=%22middle%22 dominant-baseline=%22central%22>🎨</text></svg>">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            font-family: 'Assistant', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+        }
+        
+        canvas {
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+            outline: none;
+        }
+        canvas.cursor-crosshair { cursor: crosshair; }
+        canvas.cursor-move { cursor: move; }
+        canvas.cursor-eraser { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"></path></svg>') 0 24, auto; }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #f8fafc; cursor: pointer; margin-top: -7px; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
+        
+        .glass-btn {
+            background-color: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:active { transform: scale(0.95); }
+        
+        .active-glass {
+            background-color: rgba(200, 210, 225, 0.4) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.7) !important;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.3) inset, 0 4px 10px rgba(0,0,0,0.5) !important;
+            font-weight: 800 !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+
+        .quick-stamp:active { transform: scale(0.85); }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        
+        .recording-pulse { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .ui-element { transition: opacity 0.3s ease, transform 0.3s ease; pointer-events: auto; }
+        .ui-hidden { opacity: 0; pointer-events: none !important; transform: scale(0.95); }
+
+        body.zen-mode .advanced-ui { display: none !important; }
+        
+        #color-picker-wrapper { transition: transform 0.1s ease; display: inline-block; }
+        #color-picker { width: 36px; height: 36px; border: 2px solid white; border-radius: 50%; overflow: hidden; padding: 0; cursor: pointer; }
+        #color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+        #color-picker::-webkit-color-swatch { border: none; border-radius: 50%; }
+    </style>
+</head>
+<body class="fixed inset-0 touch-none select-none">
+
+    <main id="canvas-container" class="absolute inset-0 z-0">
+        <canvas id="symmetry-canvas" class="w-full h-full cursor-crosshair block touch-none"></canvas>
+    </main>
+
+    <div id="ui-wrapper" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between">
+        
+        <!-- ================= סרגל עליון ================= -->
+        <div class="ui-element w-full pt-2 px-2">
+            <div class="flex flex-nowrap items-center gap-2 hide-scrollbar whitespace-nowrap w-full">
+                
+                <!-- כותרת האפליקציה -->
+                <div class="text-lg font-extrabold text-transparent bg-clip-text bg-gradient-to-l from-sky-400 to-indigo-400 px-2 shrink-0 select-none advanced-ui">
+                    המעבדה של עידו 🎨
+                </div>
+
+                <div class="glass-btn flex items-center p-1 rounded-xl shrink-0 gap-1">
+                    <button id="btn-undo" class="hover:bg-slate-700/50 text-slate-200 text-xs py-1.5 px-3 rounded-lg disabled:opacity-50 font-bold">↩ חזור</button>
+                    <button id="btn-redo" class="hover:bg-slate-700/50 text-slate-200 text-xs py-1.5 px-3 rounded-lg disabled:opacity-50 font-bold">↪ קדימה</button>
+                    <button id="btn-clear" class="hover:bg-rose-900/50 text-rose-300 text-xs py-1.5 px-3 rounded-lg font-bold">🗑️ הכל</button>
+                </div>
+
+                <div class="glass-btn flex items-center p-1 px-3 rounded-xl shrink-0 gap-2 advanced-ui">
+                    <span class="text-xs text-slate-200 font-bold">🔍</span>
+                    <input type="range" id="zoom-slider" min="0.2" max="3" value="1" step="0.1" class="w-20">
+                </div>
+
+                <div class="glass-btn flex items-center p-1 px-2 rounded-xl shrink-0 gap-1.5 advanced-ui">
+                    <label class="text-[10px] text-slate-300 font-bold">רקע:</label>
+                    <input type="color" id="bg-color-picker" value="#0f172a" class="w-6 h-6 rounded cursor-pointer border-0 p-0">
+                    <div class="flex gap-1" id="bg-pattern-btns">
+                        <button class="bg-btn active-glass text-xs py-1 px-2 rounded-md" data-bg="none">חלק</button>
+                        <button class="bg-btn text-slate-300 hover:bg-slate-700/50 text-xs py-1 px-2 rounded-md" data-bg="grid">משבצות</button>
+                        <button class="bg-btn text-slate-300 hover:bg-slate-700/50 text-xs py-1 px-2 rounded-md" data-bg="lines">שורות</button>
+                        <button class="bg-btn text-slate-300 hover:bg-slate-700/50 text-xs py-1 px-2 rounded-md" data-bg="dots">נקודות</button>
+                        <button class="bg-btn text-slate-300 hover:bg-slate-700/50 text-xs py-1 px-2 rounded-md" data-bg="transparent">שקוף</button>
+                    </div>
+                    
+                    <label class="hover:bg-indigo-900/50 text-indigo-200 text-xs py-1 px-2 rounded-lg cursor-pointer flex items-center ml-1 border border-indigo-500/30">
+                        🖼️ תמונה
+                        <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    </label>
+                    <button id="btn-clear-img" class="hidden bg-rose-900/50 text-rose-200 text-[10px] py-1 px-2 rounded-lg">הסר</button>
+                </div>
+
+                <div class="glass-btn flex items-center p-1 rounded-xl shrink-0 gap-1 advanced-ui">
+                    <button id="btn-save" class="bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs py-1.5 px-3 rounded-lg font-bold">📸 תמונה</button>
+                    <button id="btn-record" class="bg-red-600/80 hover:bg-red-500 text-white text-xs py-1.5 px-3 rounded-lg font-bold"><span id="record-icon">⏺</span> סרטון</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= פיצול לצד ימין ושמאל ================= -->
+        <div class="flex-1 w-full relative pointer-events-none mt-2">
+            
+            <!-- ====== צד ימין (כלי ציור) ====== -->
+            <div class="ui-element absolute right-2 top-0 bottom-0 w-28 flex flex-col items-end gap-2 overflow-y-auto hide-scrollbar pb-24 pt-2">
+                
+                <div class="glass-btn p-1.5 rounded-2xl flex flex-col gap-1 w-full">
+                    <button class="tool-btn active-glass flex items-center justify-center gap-1 text-slate-200 py-2 text-xs rounded-xl" data-tool="draw">✏️ צייר</button>
+                    <button class="tool-btn hover:bg-slate-700/50 flex items-center justify-center gap-1 text-slate-200 py-2 text-xs rounded-xl" data-tool="erase">🧽 מחק</button>
+                    <button class="tool-btn hover:bg-slate-700/50 flex items-center justify-center gap-1 text-slate-200 py-2 text-xs rounded-xl advanced-ui" data-tool="fill">🪣 צבע</button>
+                    
+                    <div class="flex gap-1 w-full">
+                        <button class="tool-btn hover:bg-slate-700/50 flex-1 flex items-center justify-center gap-1 text-slate-200 py-2 text-xs rounded-xl" data-tool="move" title="הזז את מרכז הציור">🎯 מרכז</button>
+                        <button id="btn-reset-center" class="bg-slate-700/50 hover:bg-slate-600/50 text-sky-300 py-2 px-3 text-xs rounded-xl transition-colors font-bold" title="החזר מרכז לאמצע">⌖</button>
+                    </div>
+                    
+                    <button id="btn-guides" class="hover:bg-slate-700/50 text-slate-200 py-2 text-xs rounded-xl border border-slate-600 transition-colors mt-1">📐 קווי עזר</button>
+                </div>
+
+                <div class="glass-btn p-2 rounded-2xl flex flex-col items-center gap-3 w-full">
+                    <div class="text-[10px] text-slate-300 font-bold">צבע ועובי:</div>
+                    <div id="color-picker-wrapper" class="flex items-center justify-center h-12 w-12">
+                        <input type="color" id="color-picker" value="#38bdf8">
+                    </div>
+                    <input type="range" id="brush-size" min="1" max="80" value="5" class="w-[90%]">
+                </div>
+
+                <div class="glass-btn p-1.5 rounded-2xl flex flex-col gap-1 w-full">
+                    <button class="brush-btn active-glass text-slate-200 py-1.5 text-xs rounded-xl" data-type="normal">✏️ קו רגיל</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-xl" data-type="squares">⬛ מרובע</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-xl advanced-ui" data-type="stars">⭐ כוכבים</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-xl advanced-ui" data-type="spray">💨 ספריי</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-xl advanced-ui" data-type="particle">✨ חלקיקים</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-xl advanced-ui" data-type="wiggle">〰️ קו זז</button>
+                    <button class="brush-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-[10px] font-bold rounded-xl bg-indigo-900/30 advanced-ui" data-type="stamp">🔠 אימוג'י/אות</button>
+                </div>
+                
+                <div id="emoji-container" class="hidden glass-btn p-2 rounded-2xl w-full flex-col gap-2 border border-indigo-400/50 bg-indigo-900/30 advanced-ui">
+                    <input type="text" id="emoji-input" value="🌸" class="w-full text-center text-xl bg-slate-800 text-white rounded-lg outline-none py-1">
+                    <div class="flex flex-wrap justify-center gap-1">
+                        <button class="quick-stamp bg-slate-700 w-6 h-6 rounded-md text-sm" data-stamp="⭐">⭐</button>
+                        <button class="quick-stamp bg-slate-700 w-6 h-6 rounded-md text-sm" data-stamp="❤️">❤️</button>
+                        <button class="quick-stamp bg-slate-700 w-6 h-6 rounded-md text-sm" data-stamp="😊">😊</button>
+                        <button class="quick-stamp bg-slate-700 w-6 h-6 rounded-md text-sm font-bold text-sky-300" data-stamp="א">א</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== צד שמאל (אפקטים, שומר מסך ותדרים מפוצלים) ====== -->
+            <div class="ui-element absolute left-2 top-0 bottom-0 w-36 flex flex-col items-start gap-2 overflow-y-auto hide-scrollbar pb-24 pt-2 advanced-ui">
+                
+                <!-- קטגוריה 1: קסמי מברשת (מה שמשפיע על הקו) -->
+                <div class="glass-btn p-2 rounded-2xl flex flex-col gap-1 w-full text-center border-indigo-500/30 border">
+                    <div class="text-[10px] text-indigo-300 font-bold mb-1">✨ קסמי מברשת:</div>
+                    
+                    <button id="btn-audio-draw" class="hover:bg-slate-700/50 text-slate-200 py-1.5 text-[11px] rounded-lg border border-sky-500/50 bg-sky-900/30 mb-1 transition-colors font-bold">🎵 צלילי ציור</button>
+                    <button class="effect-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-lg" data-effect="neon">🌟 זוהר בחושך</button>
+                    <button class="effect-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-lg" data-effect="rainbow">🌈 קשת בענן</button>
+                    <button class="effect-btn hover:bg-slate-700/50 text-slate-200 py-1.5 text-xs rounded-lg" data-effect="calligraphy">✍️ עובי משתנה</button>
+                    <button class="effect-btn hover:bg-pink-900/40 text-pink-200 py-1.5 text-[10px] font-bold rounded-lg border border-pink-500/30" data-effect="audio">🎤 רקדן מיקרופון</button>
+                </div>
+
+                <!-- קטגוריה 2: קסמי אווירה (סביבה, תנועה וסאונד) -->
+                <div class="glass-btn p-2 rounded-2xl flex flex-col gap-1 w-full text-center border-emerald-500/30 border mt-1">
+                    <div class="text-[10px] text-emerald-300 font-bold mb-1">🌌 קסמי אווירה:</div>
+
+                    <!-- שומר מסך -->
+                    <div class="bg-slate-800/40 rounded-xl p-1 pb-2 mb-1 border border-slate-700/50">
+                        <button class="effect-btn w-full hover:bg-emerald-900/50 text-emerald-300 py-1.5 text-[11px] font-bold rounded-lg mb-1 transition-colors" data-effect="screensaver">🌌 שומר מסך</button>
+                        <div class="flex items-center gap-1 px-1">
+                            <span class="text-[9px] text-slate-400">מהירות:</span>
+                            <input type="range" id="screensaver-speed" min="0.1" max="3" step="0.1" value="1" class="w-full h-1">
+                        </div>
+                    </div>
+
+                    <!-- קרוסלה מסתובבת -->
+                    <div class="bg-slate-800/40 rounded-xl p-1 pb-2 mb-1 border border-slate-700/50">
+                        <button class="effect-btn w-full hover:bg-yellow-900/50 text-yellow-200 py-1.5 text-[11px] font-bold rounded-lg mb-1 transition-colors" data-effect="spin">🎡 קרוסלה</button>
+                        <div class="flex items-center gap-1 px-1">
+                            <span class="text-[9px] text-slate-400">מהירות:</span>
+                            <input type="range" id="spin-speed" min="1" max="150" value="15" class="w-full h-1">
+                        </div>
+                    </div>
+
+                    <!-- מוזיקת תדרים -->
+                    <div class="bg-slate-800/40 rounded-xl p-1.5 pb-2 border border-slate-700/50">
+                        <button class="effect-btn w-full hover:bg-purple-900/50 text-purple-300 py-1.5 text-[11px] font-bold rounded-lg transition-colors mb-1.5" data-effect="binaural">🎧 תדרי רוגע</button>
+                        <select id="audio-style" class="w-full bg-slate-900/80 text-[10px] font-bold text-purple-100 rounded p-1 border border-purple-500/30 outline-none text-center cursor-pointer">
+                            <option value="healing">שלווה (174Hz)</option>
+                            <option value="energy">אנרגיה (432Hz)</option>
+                            <option value="focus">ריכוז (256Hz)</option>
+                            <option value="space">חלל עמוק 🌌</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= סרגל תחתון ================= -->
+        <div class="ui-element w-full pb-2 px-2 absolute bottom-0 left-0 right-0 pointer-events-none flex justify-center advanced-ui">
+            
+            <div class="glass-btn rounded-full flex flex-nowrap items-center gap-2 p-1.5 overflow-x-auto hide-scrollbar pointer-events-auto max-w-[95vw]">
+                <div class="flex gap-1 shrink-0">
+                    <button class="mode-btn active-glass rounded-full py-1.5 px-3 md:px-4 text-xs md:text-sm font-bold whitespace-nowrap" data-mode="radial">מנדלה</button>
+                    <button class="mode-btn hover:bg-slate-700/50 text-slate-200 rounded-full py-1.5 px-3 md:px-4 text-xs md:text-sm font-bold whitespace-nowrap" data-mode="kaleidoscope">קלידוסקופ</button>
+                    <button class="mode-btn hover:bg-slate-700/50 text-slate-200 rounded-full py-1.5 px-3 md:px-4 text-xs md:text-sm font-bold whitespace-nowrap" data-mode="tessellation">ריצוף</button>
+                    <button class="mode-btn hover:bg-slate-700/50 text-slate-200 rounded-full py-1.5 px-3 md:px-4 text-xs md:text-sm font-bold whitespace-nowrap" data-mode="spirograph">גלגלי פלא</button>
+                </div>
+                
+                <div class="w-px h-5 bg-slate-500/50 shrink-0"></div>
+                
+                <div id="panel-radial" class="flex items-center gap-2 px-2 shrink-0">
+                    <label class="text-xs font-bold text-sky-200 whitespace-nowrap">שכפולים:</label>
+                    <input type="range" id="symmetry-count" min="2" max="36" value="6" step="1" class="w-20 md:w-28">
+                    <span id="symmetry-count-display" class="text-sky-200 font-bold text-sm w-4 text-center">6</span>
+                </div>
+                
+                <div id="panel-tessellation" class="hidden flex items-center gap-2 px-2 shrink-0">
+                    <label class="text-xs font-bold text-sky-200 whitespace-nowrap">גודל:</label>
+                    <input type="range" id="tess-size" min="40" max="300" value="120" step="10" class="w-20 md:w-28">
+                    <span id="tess-size-display" class="text-sky-200 font-bold text-sm w-6 text-center">120</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= כפתורי מערכת למטה משמאל ================= -->
+        <button id="btn-toggle-ui" class="absolute bottom-4 left-2 pointer-events-auto bg-slate-800/80 backdrop-blur-md border border-slate-600 hover:bg-slate-700 text-white rounded-full p-2 shadow-xl transition-all hover:scale-110 z-50 flex flex-col items-center justify-center gap-1 w-12 h-12" title="הסתר תפריטים">
+            <span id="ui-eye-icon" class="text-lg leading-none">👁️</span>
+            <span id="ui-eye-text" class="text-[9px] font-bold leading-none">הסתר</span>
+        </button>
+
+        <button id="btn-zen-mode" class="ui-element absolute bottom-4 left-16 pointer-events-auto bg-teal-800/80 backdrop-blur-md border border-teal-600 hover:bg-teal-700 text-white rounded-full p-2 shadow-xl transition-all hover:scale-110 z-50 flex flex-col items-center justify-center gap-1 w-12 h-12" title="הפעל מצב ציור פשוט ונקי">
+            <span id="zen-icon" class="text-lg leading-none">🧘‍♂️</span>
+            <span id="zen-text" class="text-[9px] font-bold leading-none">רגוע</span>
+        </button>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('symmetry-canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const container = document.getElementById('canvas-container');
+        
+        const strokeCanvas = document.createElement('canvas');
+        const strokeCtx = strokeCanvas.getContext('2d', { willReadFrequently: true });
+        
+        // --- UI Logic ---
+        const btnToggleUI = document.getElementById('btn-toggle-ui');
+        const uiElements = document.querySelectorAll('.ui-element');
+        const eyeIcon = document.getElementById('ui-eye-icon');
+        const eyeText = document.getElementById('ui-eye-text');
+        let uiVisible = true;
+
+        btnToggleUI.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            uiVisible = !uiVisible;
+            uiElements.forEach(el => {
+                if (uiVisible) el.classList.remove('ui-hidden');
+                else el.classList.add('ui-hidden');
+            });
+            if (uiVisible) {
+                eyeIcon.innerText = "👁️"; eyeText.innerText = "הסתר"; btnToggleUI.classList.remove('opacity-50');
+            } else {
+                eyeIcon.innerText = "👁️‍🗨️"; eyeText.innerText = "הצג"; btnToggleUI.classList.add('opacity-50');
+            }
+        });
+
+        // --- Zen Mode ---
+        let isZenMode = false;
+        const btnZenMode = document.getElementById('btn-zen-mode');
+        const zenIcon = document.getElementById('zen-icon');
+        const zenText = document.getElementById('zen-text');
+
+        btnZenMode.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            isZenMode = !isZenMode;
+            document.body.classList.toggle('zen-mode', isZenMode);
+            
+            if (isZenMode) {
+                btnZenMode.classList.remove('bg-teal-800/80', 'border-teal-600', 'hover:bg-teal-700');
+                btnZenMode.classList.add('bg-rose-800/80', 'border-rose-600', 'hover:bg-rose-700');
+                zenIcon.innerText = "⚙️"; zenText.innerText = "מתקדם";
+            } else {
+                btnZenMode.classList.remove('bg-rose-800/80', 'border-rose-600', 'hover:bg-rose-700');
+                btnZenMode.classList.add('bg-teal-800/80', 'border-teal-600', 'hover:bg-teal-700');
+                zenIcon.innerText = "🧘‍♂️"; zenText.innerText = "רגוע";
+            }
+            redrawAll();
+        });
+
+        // --- Guides ---
+        let showGuides = false;
+        const btnGuides = document.getElementById('btn-guides');
+        btnGuides.addEventListener('click', (e) => {
+            showGuides = !showGuides;
+            if(showGuides) e.currentTarget.classList.add('active-glass');
+            else e.currentTarget.classList.remove('active-glass');
+            redrawAll();
+        });
+
+        // --- Audio Contexts (Draw & Binaural) ---
+        let drawAudioCtx;
+        let isDrawingAudioEnabled = false;
+        let lastNoteTime = 0;
+        const btnAudioDraw = document.getElementById('btn-audio-draw');
+
+        async function initDrawAudio() {
+            if (!drawAudioCtx) drawAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (drawAudioCtx.state === 'suspended') await drawAudioCtx.resume();
+        }
+
+        btnAudioDraw.addEventListener('click', async (e) => {
+            isDrawingAudioEnabled = !isDrawingAudioEnabled;
+            if(isDrawingAudioEnabled) {
+                e.currentTarget.classList.add('active-glass');
+                await initDrawAudio();
+            } else {
+                e.currentTarget.classList.remove('active-glass');
+            }
+        });
+
+        function playNote(yPos) {
+            if (!isDrawingAudioEnabled || !drawAudioCtx) return;
+            const now = drawAudioCtx.currentTime;
+            if (now - lastNoteTime < 0.08) return; 
+            lastNoteTime = now;
+
+            const osc = drawAudioCtx.createOscillator();
+            const gainNode = drawAudioCtx.createGain();
+            const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+            const normalizedY = Math.max(0, Math.min(1, 1 - (yPos / height)));
+            const index = Math.floor(normalizedY * (pentatonic.length - 1));
+            const freq = pentatonic[index];
+
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(freq, now);
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.05, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(gainNode); gainNode.connect(drawAudioCtx.destination);
+            osc.start(now); osc.stop(now + 0.5);
+        }
+
+        // --- Binaural Beats Generator ---
+        let binauralNodes = [];
+        async function startBinauralBeats() {
+            if (!drawAudioCtx) drawAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (drawAudioCtx.state === 'suspended') await drawAudioCtx.resume();
+            stopBinauralBeats(); 
+
+            const style = document.getElementById('audio-style').value;
+            let baseFreq = 174, beatFreq = 5.5, hasChord = false;
+
+            if (style === 'healing') { baseFreq = 174; beatFreq = 5.5; }
+            else if (style === 'energy') { baseFreq = 432; beatFreq = 8; }
+            else if (style === 'focus') { baseFreq = 256; beatFreq = 14; }
+            else if (style === 'space') { baseFreq = 100; beatFreq = 2; hasChord = true; }
+
+            const oscLeft = drawAudioCtx.createOscillator();
+            const oscRight = drawAudioCtx.createOscillator();
+            const pannerLeft = drawAudioCtx.createStereoPanner ? drawAudioCtx.createStereoPanner() : drawAudioCtx.createGain(); 
+            const pannerRight = drawAudioCtx.createStereoPanner ? drawAudioCtx.createStereoPanner() : drawAudioCtx.createGain();
+            const masterGain = drawAudioCtx.createGain();
+            const lfo = drawAudioCtx.createOscillator();
+            const lfoGain = drawAudioCtx.createGain();
+
+            oscLeft.type = style === 'space' ? 'triangle' : 'sine'; 
+            oscRight.type = style === 'space' ? 'triangle' : 'sine';
+            
+            oscLeft.frequency.value = baseFreq; 
+            oscRight.frequency.value = baseFreq + beatFreq;
+
+            if(pannerLeft.pan) { pannerLeft.pan.value = -1; pannerRight.pan.value = 1; }
+
+            lfo.type = 'sine'; lfo.frequency.value = style === 'space' ? 0.02 : 0.05; 
+            lfoGain.gain.value = 0.4; 
+            masterGain.gain.value = style === 'space' ? 0.08 : 0.15; 
+
+            lfo.connect(lfoGain); lfoGain.connect(masterGain.gain);
+            oscLeft.connect(pannerLeft).connect(masterGain);
+            oscRight.connect(pannerRight).connect(masterGain);
+            
+            oscLeft.start(); oscRight.start(); lfo.start();
+            binauralNodes = [oscLeft, oscRight, lfo, masterGain];
+
+            if (hasChord) {
+                const oscChord = drawAudioCtx.createOscillator();
+                oscChord.type = 'sine';
+                oscChord.frequency.value = baseFreq * 1.5; 
+                const pannerCenter = drawAudioCtx.createStereoPanner ? drawAudioCtx.createStereoPanner() : drawAudioCtx.createGain();
+                if(pannerCenter.pan) pannerCenter.pan.value = 0;
+                oscChord.connect(pannerCenter).connect(masterGain);
+                oscChord.start();
+                binauralNodes.push(oscChord);
+            }
+
+            masterGain.connect(drawAudioCtx.destination);
+        }
+
+        function stopBinauralBeats() {
+            binauralNodes.forEach(node => { if (node.stop) node.stop(); node.disconnect(); });
+            binauralNodes = [];
+        }
+        
+        document.getElementById('audio-style').addEventListener('change', () => {
+            if (activeEffects.binaural) startBinauralBeats();
+        });
+
+        // --- General UI Elements ---
+        const btnUndo = document.getElementById('btn-undo');
+        const btnRedo = document.getElementById('btn-redo');
+        const btnClear = document.getElementById('btn-clear');
+        const zoomSlider = document.getElementById('zoom-slider');
+        const bgColorPicker = document.getElementById('bg-color-picker');
+        const bgBtns = document.querySelectorAll('.bg-btn'); 
+        const imageUpload = document.getElementById('image-upload');
+        const btnClearImg = document.getElementById('btn-clear-img');
+        const btnSave = document.getElementById('btn-save');
+        const btnRecord = document.getElementById('btn-record');
+        
+        const symmetryCountSlider = document.getElementById('symmetry-count');
+        const countDisplay = document.getElementById('symmetry-count-display');
+        const tessSizeSlider = document.getElementById('tess-size');
+        const tessSizeDisplay = document.getElementById('tess-size-display');
+        
+        const toolBtns = document.querySelectorAll('.tool-btn');
+        const colorPicker = document.getElementById('color-picker');
+        const colorPickerWrapper = document.getElementById('color-picker-wrapper');
+        const brushSizeSlider = document.getElementById('brush-size');
+        const brushBtns = document.querySelectorAll('.brush-btn');
+        const emojiContainer = document.getElementById('emoji-container');
+        const emojiInput = document.getElementById('emoji-input');
+        const quickStamps = document.querySelectorAll('.quick-stamp');
+        const btnResetCenter = document.getElementById('btn-reset-center');
+        
+        const effectBtns = document.querySelectorAll('.effect-btn');
+        const spinSpeedSlider = document.getElementById('spin-speed');
+        const screensaverSpeedSlider = document.getElementById('screensaver-speed');
+
+        // --- State ---
+        let width = 0, height = 0, centerX = 0, centerY = 0;
+        let isDrawing = false, isDraggingCenter = false;
+        let mode = 'radial';
+        let activeTool = 'draw';
+        let activeBrush = 'normal';
+        let currentBgPattern = 'none';
+        let symmetryCount = parseInt(symmetryCountSlider.value);
+        let tessSize = parseInt(tessSizeSlider.value);
+        let globalZoom = parseFloat(zoomSlider.value);
+        
+        const activeEffects = { neon: false, rainbow: false, calligraphy: false, spin: false, audio: false, screensaver: false, binaural: false };
+        
+        let globalAngle = 0, audioScale = 1, audioTargetScale = 1, time = 0, hasWiggleStrokes = false;
+        let screensaverTime = 0, lastLoopTime = Date.now();
+        
+        let strokes = [], historyStack = [], redoStack = [];
+        let currentStroke = null, lastPos = null, globalRainbowHue = 0, uploadedImage = null;
+
+        let micAudioCtx, analyser, dataArray;
+        let mediaRecorder, recordedChunks = [], isRecording = false;
+
+        // --- Core Init ---
+        function resizeCanvas() {
+            width = window.innerWidth || document.documentElement.clientWidth || 800;
+            height = window.innerHeight || document.documentElement.clientHeight || 600;
+            
+            canvas.width = width; canvas.height = height;
+            strokeCanvas.width = width; strokeCanvas.height = height;
+            
+            if (centerX === 0 && centerY === 0) {
+                centerX = width / 2; centerY = height / 2; saveState(); 
+            }
+            if (width > 0 && height > 0) redrawAll();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function updateColorPickerSize() {
+            const size = parseInt(brushSizeSlider.value);
+            const scale = 0.5 + (size / 80) * 0.9;
+            colorPickerWrapper.style.transform = `scale(${scale})`;
+        }
+        brushSizeSlider.addEventListener('input', updateColorPickerSize);
+        updateColorPickerSize();
+
+        // --- Mic Audio ---
+        async function initMicAudio() {
+            if (micAudioCtx) return true;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = micAudioCtx.createAnalyser();
+                const source = micAudioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                return true;
+            } catch (err) {
+                alert("לא ניתן לגשת למיקרופון.");
+                activeEffects.audio = false; 
+                document.querySelector('[data-effect="audio"]').classList.remove('active-glass');
+                return false;
+            }
+        }
+
+        // --- Video Recording ---
+        btnRecord.addEventListener('click', () => {
+            if (isRecording) {
+                mediaRecorder.stop();
+                btnRecord.classList.remove('recording-pulse');
+                btnRecord.innerHTML = '⏺ סרטון';
+                isRecording = false;
+            } else {
+                const stream = canvas.captureStream(30);
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url;
+                    a.download = `Ido-Lab-Video-${new Date().getTime()}.webm`; a.click();
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                btnRecord.classList.add('recording-pulse');
+                btnRecord.innerHTML = '⏹ עצור';
+            }
+        });
+
+        // --- Listeners & Logic ---
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => { uploadedImage = img; btnClearImg.classList.remove('hidden'); saveState(); redrawAll(); };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        btnClearImg.addEventListener('click', () => { uploadedImage = null; imageUpload.value = ''; btnClearImg.classList.add('hidden'); saveState(); redrawAll(); });
+        
+        bgBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                bgBtns.forEach(b => { b.classList.remove('active-glass'); b.classList.add('text-slate-300'); });
+                e.currentTarget.classList.add('active-glass'); e.currentTarget.classList.remove('text-slate-300');
+                currentBgPattern = e.currentTarget.dataset.bg;
+                saveState(); redrawAll();
+            });
+        });
+        
+        bgColorPicker.addEventListener('input', redrawAll);
+        bgColorPicker.addEventListener('change', () => saveState());
+        zoomSlider.addEventListener('input', (e) => { globalZoom = parseFloat(e.target.value); redrawAll(); });
+
+        toolBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                toolBtns.forEach(b => b.classList.remove('active-glass'));
+                e.currentTarget.classList.add('active-glass');
+                activeTool = e.currentTarget.dataset.tool;
+                canvas.className = 'w-full h-full block touch-none';
+                if(activeTool === 'move') canvas.classList.add('cursor-move');
+                else if(activeTool === 'erase') canvas.classList.add('cursor-eraser');
+                else canvas.classList.add('cursor-crosshair');
+            });
+        });
+
+        btnResetCenter.addEventListener('click', () => {
+            centerX = width / 2; centerY = height / 2; saveState(); redrawAll();
+        });
+
+        brushBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                brushBtns.forEach(b => b.classList.remove('active-glass'));
+                e.currentTarget.classList.add('active-glass');
+                activeBrush = e.currentTarget.dataset.type;
+                emojiContainer.classList.toggle('hidden', activeBrush !== 'stamp');
+            });
+        });
+        
+        quickStamps.forEach(btn => { btn.addEventListener('click', (e) => { emojiInput.value = e.target.dataset.stamp; }); });
+
+        effectBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const effect = e.currentTarget.dataset.effect;
+                activeEffects[effect] = !activeEffects[effect];
+                
+                if(activeEffects[effect]) e.currentTarget.classList.add('active-glass');
+                else e.currentTarget.classList.remove('active-glass');
+
+                if (effect === 'audio') {
+                    if (activeEffects.audio) {
+                        const success = await initMicAudio();
+                        if(success && micAudioCtx.state === 'suspended') micAudioCtx.resume();
+                    } else { audioTargetScale = 1; }
+                }
+                
+                if (effect === 'binaural') {
+                    if (activeEffects.binaural) startBinauralBeats();
+                    else stopBinauralBeats();
+                }
+            });
+        });
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active-glass'));
+                e.target.classList.add('active-glass');
+                mode = e.target.dataset.mode;
+                document.getElementById('panel-radial').classList.toggle('hidden', mode === 'tessellation');
+                document.getElementById('panel-tessellation').classList.toggle('hidden', mode !== 'tessellation');
+                redrawAll();
+            });
+        });
+
+        symmetryCountSlider.addEventListener('input', e => { symmetryCount = e.target.value; countDisplay.innerText = symmetryCount; redrawAll(); });
+        tessSizeSlider.addEventListener('input', e => { tessSize = e.target.value; tessSizeDisplay.innerText = tessSize; redrawAll(); });
+
+        // --- Drawing Math ---
+        function transformPoint(rawX, rawY) {
+            let dx = (rawX - centerX) / (audioScale * globalZoom);
+            let dy = (rawY - centerY) / (audioScale * globalZoom);
+            const a = -globalAngle;
+            return {
+                x: dx * Math.cos(a) - dy * Math.sin(a) + centerX,
+                y: dx * Math.sin(a) + dy * Math.cos(a) + centerY
+            };
+        }
+
+        function getPointerPos(e) { return { rawX: e.clientX, rawY: e.clientY }; }
+
+        // --- Drawing Logic ---
+        function startPosition(e) {
+            if (e.target !== canvas) return;
+            if (e.pointerType === 'touch' || e.pointerType === 'pen') e.preventDefault();
+            
+            const rawX = e.clientX, rawY = e.clientY;
+            
+            if (activeTool === 'move') {
+                isDraggingCenter = true; centerX = rawX; centerY = rawY; redrawAll(); return;
+            }
+
+            isDrawing = true;
+            if(isDrawingAudioEnabled) initDrawAudio();
+
+            const pos = transformPoint(rawX, rawY);
+            lastPos = pos;
+            
+            currentStroke = {
+                tool: activeTool, type: activeBrush, color: colorPicker.value, baseSize: parseInt(brushSizeSlider.value),
+                isNeon: activeEffects.neon, isRainbow: activeEffects.rainbow, isCalligraphy: activeEffects.calligraphy,
+                emoji: emojiInput.value, points: []
+            };
+
+            if(currentStroke.type === 'wiggle') hasWiggleStrokes = true;
+            addPointToStroke(pos); strokes.push(currentStroke);
+            playNote(rawY);
+        }
+
+        function endPosition() {
+            if (isDraggingCenter) { isDraggingCenter = false; saveState(); }
+            if (isDrawing && currentStroke && currentStroke.points.length > 0) saveState(); 
+            isDrawing = false; currentStroke = null; lastPos = null;
+        }
+
+        function addPointToStroke(pos) {
+            if (mode === 'spirograph') {
+                const R = Math.max(20, Math.abs(pos.x - centerX)), r = Math.max(5, Math.abs(pos.y - centerY)), p = currentStroke.baseSize * 8;
+                let pts = []; const maxTheta = Math.PI * 2 * Math.min(r, 60); 
+                for (let theta = 0; theta <= maxTheta; theta += 0.1) {
+                    pts.push({ x: centerX + (R - r) * Math.cos(theta) + p * Math.cos(((R - r) / r) * theta), y: centerY + (R - r) * Math.sin(theta) - p * Math.sin(((R - r) / r) * theta), hue: currentStroke.isRainbow ? (theta * 20) % 360 : null });
+                }
+                currentStroke.points = pts; return;
+            }
+
+            let currentSize = currentStroke.baseSize;
+            if (currentStroke.isCalligraphy && lastPos) {
+                const speed = Math.min(Math.hypot(pos.x - lastPos.x, pos.y - lastPos.y), 50);
+                currentSize = Math.max(1, currentStroke.baseSize - (speed * 0.2));
+            }
+            if (currentStroke.isRainbow) globalRainbowHue = (globalRainbowHue + 2) % 360;
+
+            if (currentStroke.type === 'particle') {
+                let splatters = [];
+                for(let i=0; i<3; i++) splatters.push({ ox: (Math.random() - 0.5) * currentSize * 3, oy: (Math.random() - 0.5) * currentSize * 3, s: Math.random() * currentSize * 0.5 + 1 });
+                currentStroke.points.push({ x: pos.x, y: pos.y, size: currentSize, hue: globalRainbowHue, splatters });
+            } else if (currentStroke.type === 'spray') {
+                let sprayDots = []; const density = currentSize * 2;
+                for(let i=0; i<density; i++) {
+                    const angle = Math.random() * Math.PI * 2, radius = Math.random() * currentSize;
+                    sprayDots.push({ ox: Math.cos(angle) * radius, oy: Math.sin(angle) * radius });
+                }
+                currentStroke.points.push({ x: pos.x, y: pos.y, size: currentSize, hue: globalRainbowHue, sprayDots });
+            } else {
+                currentStroke.points.push({ x: pos.x, y: pos.y, size: currentSize, hue: globalRainbowHue });
+            }
+        }
+
+        function draw(e) {
+            if (isDraggingCenter) { centerX = e.clientX; centerY = e.clientY; redrawAll(); return; }
+            if (!isDrawing || !currentStroke) return;
+            const pos = transformPoint(e.clientX, e.clientY);
+            
+            if (['stamp', 'stars', 'spray'].includes(currentStroke.type) && lastPos) {
+                if (Math.hypot(pos.x - lastPos.x, pos.y - lastPos.y) < currentStroke.baseSize) return; 
+            }
+            addPointToStroke(pos); lastPos = pos;
+            playNote(e.clientY);
+            if(!activeEffects.spin && !activeEffects.audio && !activeEffects.screensaver && !hasWiggleStrokes) redrawAll();
+        }
+
+        canvas.addEventListener('pointerdown', startPosition);
+        canvas.addEventListener('pointerup', endPosition);
+        canvas.addEventListener('pointermove', draw);
+        canvas.addEventListener('pointercancel', endPosition);
+        canvas.addEventListener('pointerout', endPosition);
+
+        // --- Render Helpers ---
+        function drawStarShape(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3, x = cx, y = cy, step = Math.PI / spikes;
+            ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius; ctx.lineTo(x, y); rot += step;
+                x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius; ctx.lineTo(x, y); rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius); ctx.closePath();
+        }
+
+        function renderPathToCtx(context, stroke) {
+            const pts = stroke.points; if (!pts || pts.length === 0) return;
+            context.lineCap = stroke.type === 'squares' ? 'square' : 'round'; context.lineJoin = 'round'; context.shadowBlur = stroke.isNeon ? 15 : 0;
+
+            let drawPts = stroke.type === 'wiggle' ? pts.map((p, i) => ({ ...p, x: p.x + Math.sin(time + i*0.2) * (stroke.baseSize * 0.5), y: p.y + Math.cos(time + i*0.2) * (stroke.baseSize * 0.5) })) : pts;
+
+            if (stroke.tool === 'erase') {
+                context.globalCompositeOperation = 'destination-out'; context.strokeStyle = 'rgba(0,0,0,1)'; context.lineWidth = stroke.baseSize * 2; 
+                context.beginPath(); context.moveTo(drawPts[0].x, drawPts[0].y);
+                for (let i = 1; i < drawPts.length; i++) context.lineTo(drawPts[i].x, drawPts[i].y);
+                context.stroke(); context.globalCompositeOperation = 'source-over'; return;
+            }
+            if (stroke.tool === 'fill') {
+                context.fillStyle = stroke.isRainbow ? `hsl(${drawPts[0].hue}, 100%, 50%)` : stroke.color;
+                if(stroke.isNeon) context.shadowColor = context.fillStyle;
+                context.beginPath(); context.moveTo(drawPts[0].x, drawPts[0].y);
+                for (let i = 1; i < drawPts.length; i++) context.lineTo(drawPts[i].x, drawPts[i].y);
+                context.closePath(); context.fill(); return;
+            }
+
+            if (stroke.type === 'stamp') {
+                context.font = `${stroke.baseSize * 2}px Arial`; context.textAlign = 'center'; context.textBaseline = 'middle';
+                if(stroke.isNeon) context.shadowColor = stroke.color;
+                for (let i = 0; i < drawPts.length; i++) {
+                    context.fillStyle = stroke.isRainbow ? `hsl(${drawPts[i].hue}, 100%, 60%)` : stroke.color;
+                    context.fillText(stroke.emoji, drawPts[i].x, drawPts[i].y);
+                }
+                return;
+            }
+            if (stroke.type === 'stars') {
+                if(stroke.isNeon) context.shadowColor = stroke.color;
+                for (let i = 0; i < drawPts.length; i++) {
+                    context.fillStyle = stroke.isRainbow ? `hsl(${drawPts[i].hue}, 100%, 60%)` : stroke.color;
+                    drawStarShape(context, drawPts[i].x, drawPts[i].y, 5, stroke.baseSize, stroke.baseSize / 2.5); context.fill();
+                }
+                return;
+            }
+            if (stroke.type === 'spray') {
+                context.fillStyle = stroke.color; if(stroke.isNeon) context.shadowColor = stroke.color;
+                for (let i = 0; i < drawPts.length; i++) {
+                    if(stroke.isRainbow) context.fillStyle = `hsl(${drawPts[i].hue}, 100%, 60%)`;
+                    drawPts[i].sprayDots.forEach(dot => { context.fillRect(drawPts[i].x + dot.ox, drawPts[i].y + dot.oy, 1, 1); });
+                }
+                return;
+            }
+            if (stroke.type === 'particle') {
+                context.fillStyle = stroke.color; if(stroke.isNeon) context.shadowColor = stroke.color;
+                for (let i = 0; i < drawPts.length; i++) {
+                    if(stroke.isRainbow) context.fillStyle = `hsl(${drawPts[i].hue}, 100%, 60%)`;
+                    drawPts[i].splatters.forEach(sp => { context.beginPath(); context.arc(drawPts[i].x + sp.ox, drawPts[i].y + sp.oy, sp.s, 0, Math.PI*2); context.fill(); });
+                }
+                return;
+            }
+
+            for (let i = 1; i < drawPts.length; i++) {
+                context.beginPath(); context.moveTo(drawPts[i-1].x, drawPts[i-1].y); context.lineTo(drawPts[i].x, drawPts[i].y);
+                context.strokeStyle = stroke.isRainbow ? `hsl(${drawPts[i].hue}, 100%, 60%)` : stroke.color;
+                context.lineWidth = stroke.isCalligraphy ? drawPts[i].size : stroke.baseSize;
+                if(stroke.isNeon) context.shadowColor = context.strokeStyle;
+                context.stroke();
+            }
+            context.shadowBlur = 0;
+        }
+
+        function drawSymmetricToCanvas(context, stroke) {
+            if (mode === 'tessellation') {
+                const cols = Math.ceil((width / globalZoom) / tessSize) + 4, rows = Math.ceil((height / globalZoom) / tessSize) + 4;
+                for(let i = -Math.floor(cols/2); i <= Math.floor(cols/2); i++) {
+                    for(let j = -Math.floor(rows/2); j <= Math.floor(rows/2); j++) {
+                        context.save(); context.translate(i * tessSize, j * tessSize); renderPathToCtx(context, stroke); context.restore();
+                    }
+                }
+                return;
+            }
+            const copies = mode === 'spirograph' ? 1 : symmetryCount, angleStep = (Math.PI * 2) / copies;
+            for (let i = 0; i < copies; i++) {
+                context.save(); context.translate(centerX, centerY); context.rotate(i * angleStep); context.translate(-centerX, -centerY);
+                renderPathToCtx(context, stroke); context.restore();
+                if (mode === 'kaleidoscope') {
+                    context.save(); context.translate(centerX, centerY); context.rotate(i * angleStep); context.scale(1, -1); context.translate(-centerX, -centerY);
+                    renderPathToCtx(context, stroke); context.restore();
+                }
+            }
+        }
+
+        function drawBackgrounds(mainCtx) {
+            if (currentBgPattern !== 'transparent') { mainCtx.fillStyle = bgColorPicker.value; mainCtx.fillRect(0, 0, width, height); }
+
+            const hex = bgColorPicker.value.replace('#', ''), r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+            mainCtx.strokeStyle = mainCtx.fillStyle = ((0.299 * r + 0.587 * g + 0.114 * b) > 128) ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
+            mainCtx.lineWidth = 1;
+
+            if (currentBgPattern === 'grid') {
+                for(let x=0; x<width; x+=40) { mainCtx.beginPath(); mainCtx.moveTo(x,0); mainCtx.lineTo(x,height); mainCtx.stroke(); }
+                for(let y=0; y<height; y+=40) { mainCtx.beginPath(); mainCtx.moveTo(0,y); mainCtx.lineTo(width,y); mainCtx.stroke(); }
+            } else if (currentBgPattern === 'lines') {
+                for(let y=0; y<height; y+=40) { mainCtx.beginPath(); mainCtx.moveTo(0,y); mainCtx.lineTo(width,y); mainCtx.stroke(); }
+            } else if (currentBgPattern === 'dots') {
+                for(let x=20; x<width; x+=40) { for(let y=20; y<height; y+=40) { mainCtx.beginPath(); mainCtx.arc(x, y, 1.5, 0, Math.PI*2); mainCtx.fill(); } }
+            }
+
+            if (uploadedImage && (mode === 'radial' || mode === 'kaleidoscope')) {
+                const copies = symmetryCount, angleStep = (Math.PI * 2) / copies, radius = Math.max(width, height) / globalZoom;
+                for (let i = 0; i < copies; i++) {
+                    mainCtx.save(); mainCtx.translate(centerX, centerY); mainCtx.scale(globalZoom, globalZoom); mainCtx.rotate(i * angleStep);
+                    mainCtx.beginPath(); mainCtx.moveTo(0, 0); mainCtx.arc(0, 0, radius, 0, angleStep); mainCtx.closePath(); mainCtx.clip();
+                    if (mode === 'kaleidoscope' && i % 2 !== 0) mainCtx.scale(1, -1);
+                    const scale = radius / Math.min(uploadedImage.width, uploadedImage.height);
+                    mainCtx.drawImage(uploadedImage, 0, -uploadedImage.height*scale/2, uploadedImage.width*scale, uploadedImage.height*scale);
+                    mainCtx.restore();
+                }
+            }
+        }
+        
+        function drawGuides(mainCtx) {
+            if (!showGuides) return;
+            mainCtx.save(); mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)'; mainCtx.globalCompositeOperation = 'difference'; mainCtx.lineWidth = 1; mainCtx.setLineDash([5, 5]);
+            
+            if (mode === 'radial' || mode === 'kaleidoscope' || mode === 'spirograph') {
+                const copies = mode === 'spirograph' ? 1 : symmetryCount, angleStep = (Math.PI * 2) / copies;
+                mainCtx.translate(centerX, centerY); mainCtx.scale(globalZoom, globalZoom);
+                const maxR = Math.max(width, height) * 2;
+                for(let i = 0; i < copies; i++) {
+                    mainCtx.beginPath(); mainCtx.moveTo(0, 0); mainCtx.lineTo(0, -maxR); mainCtx.stroke(); mainCtx.rotate(angleStep);
+                }
+            } else if (mode === 'tessellation') {
+                mainCtx.translate(centerX, centerY); mainCtx.scale(globalZoom, globalZoom);
+                const gw = width * 2, gh = height * 2;
+                for(let x = 0; x < gw; x += tessSize) {
+                    mainCtx.beginPath(); mainCtx.moveTo(x, -gh); mainCtx.lineTo(x, gh); mainCtx.stroke();
+                    mainCtx.beginPath(); mainCtx.moveTo(-x, -gh); mainCtx.lineTo(-x, gh); mainCtx.stroke();
+                }
+                for(let y = 0; y < gh; y += tessSize) {
+                    mainCtx.beginPath(); mainCtx.moveTo(-gw, y); mainCtx.lineTo(gw, y); mainCtx.stroke();
+                    mainCtx.beginPath(); mainCtx.moveTo(-gw, -y); mainCtx.lineTo(gw, -y); mainCtx.stroke();
+                }
+            }
+            mainCtx.restore();
+        }
+
+        function redrawAll() {
+            if (width <= 0 || height <= 0 || strokeCanvas.width <= 0 || strokeCanvas.height <= 0) return;
+
+            strokeCtx.clearRect(0, 0, width, height);
+            strokeCtx.save(); strokeCtx.translate(centerX, centerY); strokeCtx.scale(globalZoom, globalZoom);
+            strokeCtx.rotate(globalAngle); strokeCtx.scale(audioScale, audioScale); strokeCtx.translate(-centerX, -centerY);
+            strokes.forEach(stroke => drawSymmetricToCanvas(strokeCtx, stroke));
+            strokeCtx.restore();
+
+            ctx.clearRect(0, 0, width, height);
+            drawBackgrounds(ctx);
+            drawGuides(ctx); 
+            ctx.drawImage(strokeCanvas, 0, 0);
+
+            if (activeTool === 'move') {
+                ctx.beginPath(); ctx.arc(centerX, centerY, 10, 0, Math.PI*2); ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.beginPath(); ctx.arc(centerX, centerY, 2, 0, Math.PI*2); ctx.fillStyle = '#ef4444'; ctx.fill();
+            }
+        }
+
+        function animationLoop() {
+            const currentTime = Date.now();
+            const deltaTime = currentTime - lastLoopTime;
+            lastLoopTime = currentTime;
+            
+            let needsRedraw = hasWiggleStrokes;
+            
+            if (activeEffects.spin) { globalAngle += parseInt(spinSpeedSlider.value) / 1000; needsRedraw = true; } 
+            else if (!isDrawing && !hasWiggleStrokes && !activeEffects.screensaver) { globalAngle = 0; }
+
+            if (activeEffects.screensaver && !isDraggingCenter) {
+                const speedMultiplier = parseFloat(document.getElementById('screensaver-speed').value) || 1;
+                screensaverTime += deltaTime * 0.0005 * speedMultiplier;
+                const targetX = (width / 2) + Math.sin(screensaverTime * 0.7) * (width * 0.35);
+                const targetY = (height / 2) + Math.cos(screensaverTime * 0.5) * (height * 0.35);
+                centerX += (targetX - centerX) * 0.05;
+                centerY += (targetY - centerY) * 0.05;
+                needsRedraw = true;
+            }
+
+            if (activeEffects.audio && analyser) {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0; for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                audioTargetScale = 1 + ((sum / dataArray.length) / 255) * 0.4; needsRedraw = true;
+            } else { audioTargetScale = 1; }
+
+            if (Math.abs(audioScale - audioTargetScale) > 0.01) { audioScale = audioScale * 0.8 + audioTargetScale * 0.2; needsRedraw = true; }
+            time += 0.1;
+            
+            if (needsRedraw || isDrawing) redrawAll();
+            requestAnimationFrame(animationLoop);
+        }
+
+        // --- History ---
+        function saveState() {
+            historyStack.push({ strokes: [...strokes], bgColor: bgColorPicker.value, bgPattern: currentBgPattern, centerX, centerY, uploadedImage });
+            redoStack = []; btnUndo.disabled = historyStack.length <= 1; btnRedo.disabled = true;
+        }
+
+        function applyState(state) {
+            strokes = [...state.strokes]; bgColorPicker.value = state.bgColor; currentBgPattern = state.bgPattern;
+            centerX = state.centerX; centerY = state.centerY; uploadedImage = state.uploadedImage;
+            hasWiggleStrokes = strokes.some(s => s.type === 'wiggle');
+            if(uploadedImage) btnClearImg.classList.remove('hidden'); else btnClearImg.classList.add('hidden');
+            bgBtns.forEach(b => {
+                b.classList.remove('active-glass'); b.classList.add('text-slate-300');
+                if(b.dataset.bg === currentBgPattern) { b.classList.add('active-glass'); b.classList.remove('text-slate-300'); }
+            });
+            redrawAll();
+        }
+
+        btnUndo.addEventListener('click', () => { if(historyStack.length > 1){ redoStack.push(historyStack.pop()); applyState(historyStack[historyStack.length - 1]); btnUndo.disabled = historyStack.length <= 1; btnRedo.disabled = false; } });
+        btnRedo.addEventListener('click', () => { if(redoStack.length > 0){ const state = redoStack.pop(); historyStack.push(state); applyState(state); btnUndo.disabled = false; btnRedo.disabled = redoStack.length === 0; } });
+        btnClear.addEventListener('click', () => { strokes = []; hasWiggleStrokes = false; saveState(); redrawAll(); });
+
+        btnSave.addEventListener('click', () => {
+            const a = document.createElement('a'); a.download = `Ido-Lab-${new Date().getTime()}.png`;
+            const exportCanvas = document.createElement('canvas'); exportCanvas.width = width; exportCanvas.height = height;
+            const expCtx = exportCanvas.getContext('2d');
+            if (currentBgPattern !== 'transparent') { expCtx.fillStyle = bgColorPicker.value; expCtx.fillRect(0,0,width,height); }
+            expCtx.drawImage(canvas, 0, 0); a.href = exportCanvas.toDataURL('image/png'); a.click();
+        });
+
+        resizeCanvas(); requestAnimationFrame(animationLoop);
+    </script>
+</body>
+</html>
